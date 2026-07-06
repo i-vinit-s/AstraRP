@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+body {
+  font-family: var(--font-inter), sans-serif;
+  -ms-overflow-style: none; /* IE */
+}
+/* Hide Side Scrollbar */
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Firefox */
+html {
+  scrollbar-width: none;
+}
+
+/* Hide Side Scrollbar */
