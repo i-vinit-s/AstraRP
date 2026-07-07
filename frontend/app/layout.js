@@ -100,7 +100,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${inter.className} bg-[#090909] text-white antialiased`}
       >
-        <DisableInspect />
+        {/* <DisableInspect />/ */}
         <NextTopLoader
           color="#8c1218"
           initialPosition={0.08}
