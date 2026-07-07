@@ -5,6 +5,7 @@ import NextTopLoader from "nextjs-toploader";
 import { AuthProvider } from "@/context/AuthContext";
 import QueryProvider from "@/providers/QueryProvider";
 import SocketProvider from "@/providers/SocketProvider";
+import ScrollToTop from "@/components/common/ScrollToTop";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -113,7 +114,8 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <QueryProvider>
             <SocketProvider>
-            {children}
+              {children}
+              <ScrollToTop />
             <Toaster richColors position="top-right" theme="dark" closeButton />
             </SocketProvider>
           </QueryProvider>
