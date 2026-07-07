@@ -99,7 +99,7 @@ export default function Footer() {
                 {[
                   ["Privacy", "/privacy"],
                   ["Terms", "/terms"],
-                  // ["Support", "/support"],
+                  ["Refund Policy", "/refund"],
                   // ["Contact", "/contact"],
                 ].map(([name, href]) => (
                   <Link

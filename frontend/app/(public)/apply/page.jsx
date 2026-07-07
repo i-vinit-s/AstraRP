@@ -7,10 +7,6 @@ import { ArrowRight, ShieldCheck, ScrollText } from "lucide-react";
 import Container from "@/components/common/Container";
 import { Button } from "@/components/ui/button";
 
-export const metadata = {
-  title: "Apply | Astra Roleplay",
-};
-
 export default function ApplyPage() {
   return (
     <main className="relative overflow-hidden bg-[#090909] text-white">
@@ -447,7 +443,7 @@ export default function ApplyPage() {
                 size="lg"
                 className="h-14 rounded-xl bg-[#8c1218] px-8 hover:bg-[#a41717]"
               >
-                <Link href="/apply/form">
+                <Link href="/whitelist">
                   Apply Now
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>

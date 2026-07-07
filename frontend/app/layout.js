@@ -6,6 +6,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import QueryProvider from "@/providers/QueryProvider";
 import SocketProvider from "@/providers/SocketProvider";
 import ScrollToTop from "@/components/common/ScrollToTop";
+import DisableInspect from "@/components/common/DisableInspect";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -99,6 +100,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${inter.className} bg-[#090909] text-white antialiased`}
       >
+        <DisableInspect />
         <NextTopLoader
           color="#8c1218"
           initialPosition={0.08}
@@ -116,7 +118,12 @@ export default function RootLayout({ children }) {
             <SocketProvider>
               {children}
               <ScrollToTop />
-            <Toaster richColors position="top-right" theme="dark" closeButton />
+              <Toaster
+                richColors
+                position="top-right"
+                theme="dark"
+                closeButton
+              />
             </SocketProvider>
           </QueryProvider>
         </AuthProvider>
