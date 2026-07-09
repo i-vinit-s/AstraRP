@@ -5,6 +5,7 @@ exports.createActivity = async ({
   actor = null,
   target = null,
   application = null,
+  submission = null,
   metadata = {},
 }) => {
   return Activity.create({
@@ -12,6 +13,7 @@ exports.createActivity = async ({
     actor,
     target,
     application,
+    submission,
     metadata,
   });
 };

@@ -1,192 +1,123 @@
-const { getIO } = require("../socket");
-const asyncHandler = require("../utils/asyncHandler");
 const Application = require("../models/Application");
-const questions = require("../config/whitelistQuestions");
-const validateApplication = require("../validators/application.validator");
-const activityService = require("../services/activity.service");
-const { canCreateNewApplication } = require("../utils/applicationCooldown");
+const ApplicationQuestion = require("../models/ApplicationQuestion");
+const ApplicationSubmission = require("../models/ApplicationSubmission");
 
-exports.getQuestions = asyncHandler(async (req, res) => {
-  res.json({
-    success: true,
-    questions: questions.map((q) => ({
-      ...q,
-      title: q.title,
-      description: q.description || "",
-      placeholder: q.placeholder || "",
-      category: q.category || "Whitelist",
-    })),
-  });
-});
+exports.getQuestions = async (req, res) => {
+  try {
+    const application = await Application.findOne({
+      slug: req.params.slug,
+    });
 
-exports.getMyApplication = asyncHandler(async (req, res) => {
-  const application = await Application.findOne({
-    user: req.user._id,
-  }).sort({
-    createdAt: -1,
-  });
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found",
+      });
+    }
 
-  const mappedAnswers = {};
+    const questions = await ApplicationQuestion.find({
+      application: application._id,
+      enabled: true,
+    }).sort({
+      section: 1,
+      order: 1,
+    });
 
-  const result = canCreateNewApplication(application);
+    res.json({
+      success: true,
+      application,
+      questions,
+    });
+  } catch (err) {
+    console.error(err);
 
-  application?.answers.forEach((item) => {
-    mappedAnswers[item.questionId] = item.answer;
-  });
-
-  res.json({
-    success: true,
-    application: application
-      ? {
-          ...application.toObject(),
-          answers: mappedAnswers,
-        }
-      : null,
-    canReapply: result.allowed,
-    cooldownEnds: result.cooldownEnds ?? null,
-  });
-});
-
-exports.saveApplication = asyncHandler(async (req, res) => {
-  const { answers } = req.body;
-
-  let formattedAnswers = answers;
-
-  if (!Array.isArray(answers)) {
-    formattedAnswers = Object.entries(answers).map(([questionId, answer]) => ({
-      questionId,
-      answer,
-    }));
-  }
-
-  if (!Array.isArray(answers)) {
-    return res.status(400).json({
+    res.status(500).json({
       success: false,
-      message: "Answers must be an array.",
+      message: "Internal Server Error",
     });
   }
+};
 
-  let application = await Application.findOne({
-    user: req.user._id,
-    status: "draft",
-  });
+exports.saveDraft = async (req, res) => {
+  try {
+    const application = await Application.findOne({
+      slug: req.params.slug,
+    });
 
-  if (!application) {
-    const count = await Application.countDocuments({
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+      });
+    }
+
+    let submission = await ApplicationSubmission.findOne({
       user: req.user._id,
+      application: application._id,
     });
 
-    application = await Application.create({
-      user: req.user._id,
-      applicationNumber: count + 1,
-      status: "draft",
-      answers: formattedAnswers,
-    });
-  } else {
-    application.answers = formattedAnswers;
+    if (!submission) {
+      submission = await ApplicationSubmission.create({
+        user: req.user._id,
+        application: application._id,
+        applicationSlug: application.slug,
+      });
+    }
 
-    await application.save();
+    submission.answers = req.body.answers;
+
+    await submission.save();
+
+    res.json({
+      success: true,
+      submission,
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+    });
   }
+};
 
-  res.status(200).json({
-    success: true,
-    application,
-  });
-});
-
-exports.submitApplication = asyncHandler(async (req, res) => {
+exports.getSubmission = async (req, res) => {
   const application = await Application.findOne({
-    user: req.user._id,
-    status: "draft",
-  }).sort({
-    createdAt: -1,
+    slug: req.params.slug,
   });
 
-  if (!application) {
-    return res.status(404).json({
-      success: false,
-      message: "Application not found.",
-    });
-  }
-
-  if (application.status !== "draft") {
-    return res.status(400).json({
-      success: false,
-      message: "Application already submitted.",
-    });
-  }
-
-  const validation = validateApplication(application.answers);
-
-  if (!validation.valid) {
-    return res.status(400).json({
-      success: false,
-      errors: validation.errors,
-    });
-  }
-
-  application.status = "pending";
-  application.submittedAt = new Date();
-
-  await application.save();
-
-  getIO()
-    .to("staff")
-    .emit("application:new", {
-      applicationId: application._id,
-
-      user: {
-        username: req.user.username,
-        globalName: req.user.globalName,
-      },
-    });
-
-  await activityService.createActivity({
-    type: "application_submitted",
-    actor: req.user._id,
-    target: req.user._id,
+  const submission = await ApplicationSubmission.findOne({
+    user: req.user._id,
     application: application._id,
   });
 
   res.json({
     success: true,
-    message: "Application submitted successfully.",
-    application,
+    submission,
   });
-});
+};
 
-exports.createNewApplication = asyncHandler(async (req, res) => {
-  const latest = await Application.findOne({
+exports.submit = async (req, res) => {
+  const application = await Application.findOne({
+    slug: req.params.slug,
+  });
+
+  const submission = await ApplicationSubmission.findOne({
     user: req.user._id,
-  }).sort({
-    createdAt: -1,
+    application: application._id,
   });
 
-  const { canCreateNewApplication } = require("../utils/applicationCooldown");
-
-  const result = canCreateNewApplication(latest);
-
-  if (!result.allowed) {
-    return res.status(400).json({
+  if (!submission) {
+    return res.status(404).json({
       success: false,
-      message: result.reason,
-      cooldownEnds: result.cooldownEnds,
     });
   }
 
-  const count = await Application.countDocuments({
-    user: req.user._id,
-  });
+  submission.status = "pending";
+  submission.submittedAt = new Date();
 
-  const application = await Application.create({
-    user: req.user._id,
-    applicationNumber: count + 1,
-    status: "draft",
-    answers: [],
-  });
+  await submission.save();
 
-  res.status(201).json({
+  res.json({
     success: true,
-    application,
   });
-});
+};

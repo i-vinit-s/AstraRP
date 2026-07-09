@@ -1,189 +1,18 @@
-const { getIO } = require("../socket");
+const ApplicationSubmission = require("../models/ApplicationSubmission");
 const User = require("../models/User");
-const Application = require("../models/Application");
+
 const asyncHandler = require("../utils/asyncHandler");
 const botService = require("../services/bot.service");
-const Activity = require("../models/Activity");
-const activityService = require("../services/activity.service");
+const { getIO } = require("../socket");
 
-exports.getApplications = asyncHandler(async (req, res) => {
-  const applications = await Application.find({
-    status: "pending",
-  })
-    .populate("user", "username globalName avatar discordId")
-    .sort({
-      submittedAt: 1,
-    });
-
-  res.json({
-    success: true,
-    count: applications.length,
-    applications,
-  });
-});
-
-exports.getApplication = asyncHandler(async (req, res) => {
-  const application = await Application.findById(req.params.id)
-    .populate("user")
-    .populate("reviewedBy", "username globalName");
-
-  if (!application) {
-    return res.status(404).json({
-      success: false,
-      message: "Application not found.",
-    });
-  }
-
-  res.json({
-    success: true,
-    application,
-  });
-});
-
-exports.reviewApplication = asyncHandler(async (req, res) => {
-  const { status, reason } = req.body;
-
-  const allowed = ["accepted", "rejected"];
-
-  if (!allowed.includes(status)) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid status.",
-    });
-  }
-
-  const application = await Application.findById(req.params.id).populate(
-    "user",
-  );
-
-  if (!application) {
-    return res.status(404).json({
-      success: false,
-      message: "Application not found.",
-    });
-  }
-
-  application.status = status;
-  application.reviewReason = reason || "";
-  application.reviewedAt = new Date();
-  application.reviewedBy = req.user._id;
-
-  if (status === "accepted") {
-    await User.findByIdAndUpdate(application.user._id, {
-      isWhitelisted: true,
-      whitelistedAt: new Date(),
-    });
-
-    await activityService.createActivity({
-      type: "application_approved",
-      actor: req.user._id,
-      target: application.user._id,
-      application: application._id,
-    });
-
-    getIO()
-      .to("staff")
-      .emit("application:approved", {
-        applicationId: application._id,
-
-        actor: {
-          username: req.user.username,
-          globalName: req.user.globalName,
-        },
-
-        target: {
-          username: application.user.username,
-          globalName: application.user.globalName,
-        },
-      });
-  }
-
-  if (status === "rejected") {
-    await User.findByIdAndUpdate(application.user._id, {
-      isWhitelisted: false,
-    });
-
-    await activityService.createActivity({
-      type: "application_rejected",
-      actor: req.user._id,
-      target: application.user._id,
-      application: application._id,
-    });
-
-    getIO()
-      .to("staff")
-      .emit("application:rejected", {
-        applicationId: application._id,
-
-        actor: {
-          username: req.user.username,
-          globalName: req.user.globalName,
-        },
-
-        target: {
-          username: application.user.username,
-          globalName: application.user.globalName,
-        },
-      });
-  }
-  await application.save();
-
-  try {
-    if (status === "accepted") {
-      await botService.applicationApproved(application.user.discordId);
-    }
-
-    if (status === "rejected") {
-      await botService.applicationRejected(application.user.discordId, reason);
-    }
-  } catch (error) {
-    console.error("Error sending Discord notification:", error);
-  }
-
-  res.json({
-    success: true,
-    application,
-  });
-});
-
-exports.getUsers = asyncHandler(async (req, res) => {
-  const users = await User.find()
-    .select(
-      "username globalName avatar discordId isWhitelisted whitelistedAt createdAt",
-    )
-    .sort({
-      createdAt: -1,
-    });
-
-  res.json({
-    success: true,
-    count: users.length,
-    users,
-  });
-});
-
-exports.getUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id).select("-password");
-
-  if (!user) {
-    return res.status(404).json({
-      success: false,
-      message: "User not found.",
-    });
-  }
-
-  const application = await Application.findOne({
-    user: user._id,
-  })
-    .sort({ createdAt: -1 })
-    .select("_id status submittedAt reviewedAt reviewReason");
-
-  res.json({
-    success: true,
-    user,
-    application,
-  });
-});
+/*
+|--------------------------------------------------------------------------
+| GET DASHBOARD STATS
+|--------------------------------------------------------------------------
+|
+| GET /staff/dashboard
+|
+*/
 
 exports.getDashboardStats = asyncHandler(async (req, res) => {
   const startOfToday = new Date();
@@ -192,69 +21,448 @@ exports.getDashboardStats = asyncHandler(async (req, res) => {
   const [
     pendingApplications,
     approvedToday,
-    totalUsers,
+    rejectedApplications,
     totalApplications,
-    recentActivity,
   ] = await Promise.all([
-    Application.countDocuments({ status: "pending" }),
-
-    Application.countDocuments({
-      status: "accepted",
-      reviewedAt: { $gte: startOfToday },
+    ApplicationSubmission.countDocuments({
+      status: "pending",
     }),
 
-    User.countDocuments(),
+    ApplicationSubmission.countDocuments({
+      status: "accepted",
+      "review.reviewedAt": {
+        $gte: startOfToday,
+      },
+    }),
 
-    Application.countDocuments(),
+    ApplicationSubmission.countDocuments({
+      status: "rejected",
+    }),
 
-    Activity.find()
-      .populate("actor", "username globalName avatar")
-      .populate("target", "username globalName avatar")
-      .sort({ createdAt: -1 })
-      .limit(6)
-      .lean(),
+    ApplicationSubmission.countDocuments(),
   ]);
 
-  res.json({
+  return res.status(200).json({
     success: true,
+
     stats: {
       pendingApplications,
       approvedToday,
-      totalUsers,
+      rejectedApplications,
       totalApplications,
     },
-    recentActivity,
   });
 });
 
-exports.getRecentActivity = asyncHandler(async (req, res) => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 20;
+/*
+|--------------------------------------------------------------------------
+| GET APPLICATION SUBMISSIONS
+|--------------------------------------------------------------------------
+|
+| GET /staff/applications
+|
+| Supported query params:
+|
+| ?status=pending
+| ?status=all
+| ?application=whitelist
+|
+*/
 
-  const skip = (page - 1) * limit;
+exports.getApplications = asyncHandler(async (req, res) => {
+  const { status = "pending", application } = req.query;
 
-  const [activity, total] = await Promise.all([
-    Activity.find()
-      .populate("actor", "username globalName avatar")
-      .populate("target", "username globalName avatar")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit),
+  const query = {};
 
-    Activity.countDocuments(),
-  ]);
+  /*
+   * Status filter.
+   */
 
-  res.json({
+  if (status && status !== "all") {
+    const allowedStatuses = [
+      "draft",
+      "pending",
+      "accepted",
+      "rejected",
+      "closed",
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid application status.",
+      });
+    }
+
+    query.status = status;
+  }
+
+  /*
+   * Application type filter.
+   *
+   * Since ApplicationSubmission.application references Application,
+   * filtering by slug requires resolving the Application first.
+   */
+
+  if (application) {
+    const Application = require("../models/Application");
+
+    const applicationDefinition = await Application.findOne({
+      slug: application.toLowerCase(),
+    })
+      .select("_id")
+      .lean();
+
+    if (!applicationDefinition) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        applications: [],
+      });
+    }
+
+    query.application = applicationDefinition._id;
+  }
+
+  const applications = await ApplicationSubmission.find(query)
+    .populate("user", "username globalName avatar discordId isWhitelisted")
+    .populate(
+      "application",
+      "slug title description category icon badge enabled",
+    )
+    .sort({
+      submittedAt: -1,
+      createdAt: -1,
+    })
+    .lean();
+
+  return res.status(200).json({
     success: true,
-    activity,
+    count: applications.length,
+    applications,
+  });
+});
 
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-      hasNext: page * limit < total,
-      hasPrevious: page > 1,
-    },
+/*
+|--------------------------------------------------------------------------
+| GET SINGLE APPLICATION SUBMISSION
+|--------------------------------------------------------------------------
+|
+| GET /staff/applications/:id
+|
+*/
+
+exports.getApplication = asyncHandler(async (req, res) => {
+  const ApplicationQuestion = require("../models/ApplicationQuestion");
+
+  const application = await ApplicationSubmission.findById(req.params.id)
+    .populate(
+      "user",
+      "username globalName avatar discordId isWhitelisted createdAt",
+    )
+    .populate(
+      "application",
+      "slug title description category icon badge enabled",
+    )
+    .populate("review.by", "username globalName avatar discordId")
+    .lean();
+
+  if (!application) {
+    return res.status(404).json({
+      success: false,
+      message: "Application submission not found.",
+    });
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Validate Application Reference
+  |--------------------------------------------------------------------------
+  */
+
+  if (!application.application) {
+    console.error(
+      `BROKEN APPLICATION REFERENCE: Submission ${application._id} has no valid application definition.`,
+    );
+
+    return res.status(409).json({
+      success: false,
+      message:
+        "This submission references an application definition that no longer exists.",
+    });
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Load Questions
+  |--------------------------------------------------------------------------
+  */
+
+  const questions = await ApplicationQuestion.find({
+    application: application.application._id,
+  })
+    .select("id title description type order section")
+    .sort({
+      order: 1,
+      createdAt: 1,
+    })
+    .lean();
+
+  /*
+  |--------------------------------------------------------------------------
+  | Question Lookup
+  |--------------------------------------------------------------------------
+  */
+
+  const questionMap = new Map(
+    questions.map((question) => [question.id, question]),
+  );
+
+  /*
+  |--------------------------------------------------------------------------
+  | Attach Question Metadata To Answers
+  |--------------------------------------------------------------------------
+  */
+
+  application.answers = (application.answers || []).map((answer) => {
+    const question = questionMap.get(answer.questionId);
+
+    return {
+      ...answer,
+
+      question: question
+        ? {
+            id: question.id,
+            title: question.title,
+            description: question.description || "",
+            type: question.type,
+          }
+        : {
+            id: answer.questionId,
+            title: answer.questionId,
+            description: "",
+            type: "text",
+          },
+    };
+  });
+
+  return res.status(200).json({
+    success: true,
+    application,
+  });
+});
+
+/*
+|--------------------------------------------------------------------------
+| REVIEW APPLICATION
+|--------------------------------------------------------------------------
+|
+| PATCH /staff/applications/:id
+|
+| Body:
+|
+| {
+|   "status": "accepted" | "rejected",
+|   "reason": "..."
+| }
+|
+*/
+
+exports.reviewApplication = asyncHandler(async (req, res) => {
+  const { status, reason = "" } = req.body;
+
+  /*
+   * Validate requested status.
+   */
+
+  if (!["accepted", "rejected"].includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: "Status must be either accepted or rejected.",
+    });
+  }
+
+  /*
+   * Require rejection reason.
+   *
+   * Frontend also validates this, but backend validation is mandatory.
+   */
+
+  if (status === "rejected" && !reason.trim()) {
+    return res.status(422).json({
+      success: false,
+      message: "A rejection reason is required.",
+    });
+  }
+
+  /*
+   * Load submission.
+   */
+
+  const application = await ApplicationSubmission.findById(req.params.id)
+    .populate("user")
+    .populate("application");
+
+  if (!application) {
+    return res.status(404).json({
+      success: false,
+      message: "Application submission not found.",
+    });
+  }
+
+  /*
+   * Only pending applications can be reviewed.
+   */
+
+  if (application.status !== "pending") {
+    return res.status(409).json({
+      success: false,
+      message: `This application has already been ${application.status}.`,
+    });
+  }
+
+  /*
+   * Save review.
+   */
+
+  application.status = status;
+
+  application.review = {
+    by: req.user._id,
+    reason: reason.trim(),
+    reviewedAt: new Date(),
+  };
+
+  /*
+|--------------------------------------------------------------------------
+| Reapplication Cooldown
+|--------------------------------------------------------------------------
+*/
+
+  if (status === "rejected") {
+    const cooldownDays =
+      Number(application.application?.reapplyCooldownDays) || 0;
+
+    if (cooldownDays > 0) {
+      application.cooldownEnds = new Date(
+        Date.now() + cooldownDays * 24 * 60 * 60 * 1000,
+      );
+    } else {
+      application.cooldownEnds = null;
+    }
+  } else {
+    application.cooldownEnds = null;
+  }
+
+  await application.save();
+
+  /*
+   * Whitelist-specific side effects.
+   *
+   * IMPORTANT:
+   * Do not whitelist users when accepting another application type
+   * such as EMS, police, business, etc.
+   */
+
+  const isWhitelistApplication = application.application?.slug === "whitelist";
+
+  if (isWhitelistApplication) {
+    await User.findByIdAndUpdate(application.user._id, {
+      isWhitelisted: status === "accepted",
+
+      applicationStatus: status === "accepted" ? "accepted" : "rejected",
+    });
+  }
+
+  /*
+   * Discord notification.
+   *
+   * Keep notification failures isolated. A Discord outage must not
+   * undo or fail a successful database review.
+   */
+
+  try {
+    if (status === "accepted") {
+      await botService.applicationApproved(
+        application.user.discordId,
+        application.application?.title,
+      );
+    }
+
+    if (status === "rejected") {
+      await botService.applicationRejected(
+        application.user.discordId,
+        reason.trim(),
+        application.application?.title,
+      );
+    }
+  } catch (error) {
+    console.error(
+      "APPLICATION REVIEW DISCORD NOTIFICATION ERROR:",
+      error.response?.data || error.message || error,
+    );
+  }
+
+  /*
+   * Real-time socket event.
+   */
+
+  try {
+    const eventName =
+      status === "accepted" ? "application:approved" : "application:rejected";
+
+    getIO()
+      .to("staff")
+      .emit(eventName, {
+        applicationId: application._id,
+
+        application: {
+          id: application.application?._id,
+          slug: application.application?.slug,
+          title: application.application?.title,
+        },
+
+        actor: {
+          id: req.user._id,
+          username: req.user.username,
+          globalName: req.user.globalName,
+        },
+
+        target: {
+          id: application.user._id,
+          username: application.user.username,
+          globalName: application.user.globalName,
+        },
+
+        status,
+
+        reviewedAt: application.review.reviewedAt,
+      });
+  } catch (error) {
+    console.error("APPLICATION REVIEW SOCKET ERROR:", error.message || error);
+  }
+
+  /*
+   * Return updated submission.
+   */
+
+  const updatedApplication = await ApplicationSubmission.findById(
+    application._id,
+  )
+    .populate("user", "username globalName avatar discordId isWhitelisted")
+    .populate(
+      "application",
+      "slug title description category icon badge enabled",
+    )
+    .populate("review.by", "username globalName avatar discordId")
+    .lean();
+
+  return res.status(200).json({
+    success: true,
+    message:
+      status === "accepted"
+        ? "Application accepted successfully."
+        : "Application rejected successfully.",
+    application: updatedApplication,
   });
 });

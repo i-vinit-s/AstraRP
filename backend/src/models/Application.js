@@ -1,62 +1,106 @@
 const mongoose = require("mongoose");
 
-const answerSchema = new mongoose.Schema(
+const RequirementSchema = new mongoose.Schema(
   {
-    questionId: {
+    type: {
       type: String,
+      enum: ["allowlisted", "discordRole", "permission", "tebex", "custom"],
       required: true,
     },
 
-    answer: {
+    value: {
+      type: String,
+      default: null,
+    },
+
+    message: {
+      type: String,
+      default: "",
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
+const BadgeSchema = new mongoose.Schema(
+  {
+    text: String,
+
+    color: {
+      type: String,
+      default: "gray",
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
+const ApplicationSchema = new mongoose.Schema(
+  {
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+
+    title: {
       type: String,
       required: true,
       trim: true,
     },
-  },
-  { _id: false },
-);
 
-const applicationSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-
-    applicationNumber: {
-      type: Number,
-      required: true,
-    },
-
-    status: {
-      type: String,
-      enum: ["draft", "pending", "accepted", "rejected", "changes_requested"],
-      default: "draft",
-    },
-
-    answers: {
-      type: [answerSchema],
-      default: [],
-    },
-
-    submittedAt: Date,
-
-    reviewedAt: Date,
-
-    reviewedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-
-    reviewReason: {
+    description: {
       type: String,
       default: "",
     },
 
-    version: {
+    category: {
+      type: String,
+      required: true,
+      default: "Community",
+    },
+
+    categoryExclusive: {
+      type: Boolean,
+      default: true,
+    },
+
+    reapplyCooldownDays: {
       type: Number,
-      default: 1,
+      default: 7,
+      min: 0,
+    },
+
+    maxAttempts: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    route: {
+      type: String,
+      required: true,
+    },
+
+    order: {
+      type: Number,
+      default: 0,
+    },
+
+    enabled: {
+      type: Boolean,
+      default: true,
+    },
+
+    badge: BadgeSchema,
+
+    requirements: {
+      type: [RequirementSchema],
+      default: [],
     },
   },
   {
@@ -64,6 +108,4 @@ const applicationSchema = new mongoose.Schema(
   },
 );
 
-applicationSchema.index({ user: 1 }, { unique: true });
-
-module.exports = mongoose.model("Application", applicationSchema);
+module.exports = mongoose.model("Application", ApplicationSchema);

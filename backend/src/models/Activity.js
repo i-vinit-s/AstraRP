@@ -32,6 +32,12 @@ const activitySchema = new mongoose.Schema(
       default: null,
     },
 
+    submission: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ApplicationSubmission",
+      default: null,
+    },
+
     metadata: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
@@ -41,5 +47,18 @@ const activitySchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+activitySchema.index({
+  createdAt: -1,
+});
+
+activitySchema.index({
+  application: 1,
+  createdAt: -1,
+});
+
+activitySchema.index({
+  submission: 1,
+});
 
 module.exports = mongoose.model("Activity", activitySchema);

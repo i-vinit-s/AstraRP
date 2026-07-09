@@ -1,93 +1,323 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import {
+  ChevronRight,
+  Clock3,
+  FileText,
+  Filter,
+  Loader2,
+  Search,
+} from "lucide-react";
+
 import api from "@/lib/api";
 
+const statusFilters = [
+  { value: "pending", label: "Pending" },
+  { value: "accepted", label: "Accepted" },
+  { value: "rejected", label: "Rejected" },
+  { value: "draft", label: "Draft" },
+  { value: "all", label: "All" },
+];
+
 export default function StaffApplicationsPage() {
+  const [status, setStatus] = useState("pending");
+  const [applicationType, setApplicationType] = useState("");
+  const [search, setSearch] = useState("");
+
   const {
     data: applications = [],
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["staff-applications"],
+    queryKey: ["staff-applications", status, applicationType],
+
     queryFn: async () => {
-      const { data } = await api.get("/staff/applications");
+      const params = new URLSearchParams();
+
+      if (status) {
+        params.set("status", status);
+      }
+
+      if (applicationType) {
+        params.set("application", applicationType);
+      }
+
+      const { data } = await api.get(
+        `/staff/applications?${params.toString()}`,
+      );
+
       return data.applications || [];
     },
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#8c1218] border-t-transparent" />
-      </div>
-    );
-  }
+  const applicationTypes = Array.from(
+    new Map(
+      applications
+        .filter((submission) => submission.application)
+        .map((submission) => [
+          submission.application.slug,
+          submission.application,
+        ]),
+    ).values(),
+  );
 
-  if (error) {
-    return (
-      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-red-400">
-        Failed to load applications.
-      </div>
+  const filteredApplications = applications.filter((submission) => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) {
+      return true;
+    }
+
+    const values = [
+      submission.user?.username,
+      submission.user?.globalName,
+      submission.user?.discordId,
+      submission.application?.title,
+      submission.application?.slug,
+    ];
+
+    return values.some((value) =>
+      String(value || "")
+        .toLowerCase()
+        .includes(query),
     );
-  }
+  });
 
   return (
-    <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold">Whitelist Applications</h1>
+    <div className="mx-auto max-w-7xl space-y-8">
+      {/* Header */}
 
-          <p className="mt-2 text-zinc-400">
-            Pending applications awaiting review.
+      <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-[0.35em] text-[#a71920]">
+            Astra Staff
+          </p>
+
+          <h1 className="mt-3 text-4xl font-bold text-white sm:text-5xl">
+            Applications
+          </h1>
+
+          <p className="mt-3 max-w-2xl text-zinc-400">
+            Review and manage application submissions across Astra Roleplay.
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-[#111111] px-5 py-3">
-          <span className="text-sm text-zinc-400">Pending</span>
+        <div className="flex min-w-40 items-center gap-4 rounded-2xl border border-white/10 bg-[#111111] px-5 py-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#8c1218]/20 bg-[#8c1218]/10">
+            <FileText className="h-5 w-5 text-[#c92a2a]" />
+          </div>
 
-          <p className="text-3xl font-bold">{applications.length}</p>
+          <div>
+            <p className="text-xs uppercase tracking-[0.15em] text-zinc-600">
+              Results
+            </p>
+
+            <p className="mt-1 text-2xl font-bold text-white">
+              {filteredApplications.length}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-4">
-        {applications.map((application) => (
-          <Link
-            key={application._id}
-            href={`/staff/applications/${application._id}`}
-            className="block rounded-2xl border border-white/10 bg-[#111111] p-6 transition hover:border-[#8c1218]"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-semibold">
-                  {application.user.globalName || application.user.username}
-                </h3>
+      {/* Filters */}
 
-                <p className="mt-1 text-sm text-zinc-500">
-                  @{application.user.username}
-                </p>
-              </div>
+      <section className="rounded-3xl border border-white/10 bg-[#111111] p-5 sm:p-6">
+        <div className="flex flex-col gap-5">
+          {/* Status filters */}
 
-              <div className="text-right">
-                <span className="rounded-full bg-yellow-500/10 px-3 py-1 text-xs text-yellow-400">
-                  Pending
-                </span>
+          <div className="flex flex-wrap gap-2">
+            {statusFilters.map((filter) => {
+              const active = status === filter.value;
 
-                <p className="mt-3 text-sm text-zinc-500">
-                  {new Date(application.submittedAt).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </Link>
-        ))}
-
-        {!applications.length && (
-          <div className="rounded-2xl border border-dashed border-white/10 py-20 text-center text-zinc-500">
-            No pending applications.
+              return (
+                <button
+                  key={filter.value}
+                  type="button"
+                  onClick={() => setStatus(filter.value)}
+                  className={`rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+                    active
+                      ? "bg-[#8c1218] text-white"
+                      : "border border-white/10 bg-white/5 text-zinc-400 hover:border-[#8c1218]/40 hover:text-white"
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
           </div>
-        )}
-      </div>
+
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px]">
+            {/* Search */}
+
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" />
+
+              <input
+                type="text"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search applicant, Discord ID or application..."
+                className="h-12 w-full rounded-xl border border-white/10 bg-[#090909] pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-[#8c1218]/60"
+              />
+            </div>
+
+            {/* Application type */}
+
+            <div className="relative">
+              <Filter className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-600" />
+
+              <select
+                value={applicationType}
+                onChange={(event) => setApplicationType(event.target.value)}
+                className="h-12 w-full appearance-none rounded-xl border border-white/10 bg-[#090909] pl-11 pr-10 text-sm text-zinc-300 outline-none transition focus:border-[#8c1218]/60"
+              >
+                <option value="">All application types</option>
+
+                {applicationTypes.map((application) => (
+                  <option key={application.slug} value={application.slug}>
+                    {application.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Loading */}
+
+      {isLoading && (
+        <div className="flex min-h-96 items-center justify-center rounded-3xl border border-white/10 bg-[#111111]">
+          <div className="text-center">
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-[#8c1218]" />
+
+            <p className="mt-4 text-sm text-zinc-500">
+              Loading applications...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Error */}
+
+      {!isLoading && error && (
+        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-6 text-red-400">
+          {error.response?.data?.message || "Failed to load applications."}
+        </div>
+      )}
+
+      {/* Applications */}
+
+      {!isLoading && !error && filteredApplications.length > 0 && (
+        <div className="space-y-3">
+          {filteredApplications.map((submission) => (
+            <ApplicationRow key={submission._id} submission={submission} />
+          ))}
+        </div>
+      )}
+
+      {/* Empty */}
+
+      {!isLoading && !error && filteredApplications.length === 0 && (
+        <div className="rounded-3xl border border-dashed border-white/10 bg-[#111111] px-6 py-24 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+            <FileText className="h-7 w-7 text-zinc-600" />
+          </div>
+
+          <h2 className="mt-6 text-xl font-semibold text-white">
+            No applications found
+          </h2>
+
+          <p className="mt-2 text-sm text-zinc-500">
+            No submissions match your current filters.
+          </p>
+        </div>
+      )}
     </div>
+  );
+}
+
+function ApplicationRow({ submission }) {
+  const user = submission.user;
+  const application = submission.application;
+
+  return (
+    <Link
+      href={`/staff/applications/${submission._id}`}
+      className="group block rounded-2xl border border-white/10 bg-[#111111] p-5 transition hover:border-[#8c1218]/40 hover:bg-[#131313] sm:p-6"
+    >
+      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+        <div className="flex min-w-0 items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#8c1218]/20 bg-[#8c1218]/10">
+            <FileText className="h-5 w-5 text-[#c92a2a]" />
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-lg font-semibold text-white">
+                {user?.globalName || user?.username || "Unknown Applicant"}
+              </h2>
+
+              <StatusBadge status={submission.status} />
+            </div>
+
+            <p className="mt-1 text-sm text-zinc-500">
+              @{user?.username || "unknown"}
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-zinc-600">
+              <span>{application?.title || "Unknown application"}</span>
+
+              <span>Attempt #{submission.attempt || 1}</span>
+
+              {user?.discordId && (
+                <span className="font-mono">{user.discordId}</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center justify-between gap-5 md:justify-end">
+          <div className="text-left md:text-right">
+            <div className="flex items-center gap-2 text-sm text-zinc-400 md:justify-end">
+              <Clock3 className="h-4 w-4 text-zinc-600" />
+
+              {submission.submittedAt
+                ? new Date(submission.submittedAt).toLocaleString()
+                : "Not submitted"}
+            </div>
+
+            <p className="mt-1 text-xs text-zinc-600">
+              {application?.category || "Uncategorized"}
+            </p>
+          </div>
+
+          <ChevronRight className="h-5 w-5 text-zinc-700 transition group-hover:translate-x-1 group-hover:text-[#c92a2a]" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function StatusBadge({ status }) {
+  const styles = {
+    draft: "border-blue-500/20 bg-blue-500/10 text-blue-400",
+    pending: "border-yellow-500/20 bg-yellow-500/10 text-yellow-400",
+    accepted: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+    rejected: "border-red-500/20 bg-red-500/10 text-red-400",
+    closed: "border-white/10 bg-white/5 text-zinc-400",
+  };
+
+  return (
+    <span
+      className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize ${
+        styles[status] || styles.closed
+      }`}
+    >
+      {status || "Unknown"}
+    </span>
   );
 }
