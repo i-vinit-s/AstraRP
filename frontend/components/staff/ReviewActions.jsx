@@ -28,7 +28,7 @@ export default function ReviewActions({ applicationId, status }) {
     },
 
     onSuccess: async (data) => {
-      toast.success(data.message || "Application reviewed successfully.");
+      toast.success(data.message || "Application Reviewed", {description: "Application Reviewed Successfully."});
 
       await Promise.all([
         queryClient.invalidateQueries({

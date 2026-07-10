@@ -119,10 +119,25 @@ export default function RootLayout({ children }) {
               {children}
               <ScrollToTop />
               <Toaster
-                richColors
                 position="top-right"
-                theme="dark"
+                richColors
                 closeButton
+                expand={false}
+                duration={4000}
+                toastOptions={{
+                  classNames: {
+                    toast:
+                      "!rounded-xl !border !border-white/10 !bg-[#101010] !shadow-2xl",
+                    title: "!text-[18px] !font-semibold",
+                    description: "!text-sm !text-zinc-300",
+                    success: "!border-emerald-500/30 !bg-emerald-950/70",
+                    error: "!border-red-500/30 !bg-red-950/70",
+                    warning: "!border-yellow-500/30 !bg-yellow-950/70",
+                    info: "!border-sky-500/30 !bg-sky-950/70",
+                    closeButton:
+                      "!border-none !bg-transparent hover:!bg-white/10",
+                  },
+                }}
               />
             </SocketProvider>
           </QueryProvider>

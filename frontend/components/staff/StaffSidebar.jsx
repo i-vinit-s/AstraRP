@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, LayoutDashboard } from "lucide-react";
+import { FileText, LayoutDashboard, Settings2 } from "lucide-react";
 
 const links = [
   {
@@ -14,6 +14,11 @@ const links = [
     name: "Applications",
     href: "/staff/applications",
     icon: FileText,
+  },
+  {
+    name: "Manage Applications",
+    href: "/staff/application-management",
+    icon: Settings2,
   },
 ];
 

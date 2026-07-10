@@ -151,7 +151,7 @@ export default function ApplicationCard({ application }) {
             asChild
             className="h-12 w-full rounded-xl bg-[#8c1218] hover:bg-[#a41717]"
           >
-            <Link href={`/applications/${application.route}`}>{application.buttonText}</Link>
+            <Link href={application.route}>{application.buttonText}</Link>
           </Button>
         )}
       </div>
