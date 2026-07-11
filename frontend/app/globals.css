@@ -17,3 +17,39 @@ html {
 }
 
 /* Hide Side Scrollbar */
+
+/* Sonner Toast */
+[data-sonner-toast] {
+  border-radius: 14px !important;
+  backdrop-filter: blur(18px);
+  overflow: hidden;
+}
+
+[data-sonner-toast][data-type="success"] {
+  background: linear-gradient(135deg,
+      rgb(8 66 38),
+      rgb(13 44 27)) !important;
+
+  border: 1px solid rgb(34 197 94 / .35) !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  background: linear-gradient(135deg,
+      rgb(80 16 16),
+      rgb(56 13 13)) !important;
+}
+
+[data-sonner-toast] [data-title] {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+[data-sonner-toast] [data-description] {
+  margin-top: 8px;
+  color: rgb(226 232 240);
+  line-height: 1.45;
+}
+
+[data-sonner-toast] [data-close-button] {
+  background: transparent !important;
+}
