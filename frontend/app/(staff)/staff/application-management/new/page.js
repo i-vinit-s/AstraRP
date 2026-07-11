@@ -6,8 +6,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import equal from "fast-deep-equal";
+import useUnsavedChanges from "@/hooks/useUnsavedChanges";
+import { useMemo } from "react";
+
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
 
 const initialForm = {
   title: "",
@@ -41,7 +46,15 @@ export default function CreateApplicationPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const [form, setForm] = useState(initialForm);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+
+  const originalForm = useMemo(() => initialForm, []);
+
+  const [form, setForm] = useState(originalForm);
+
+  const hasChanges = !equal(form, originalForm);
+
+  useUnsavedChanges(hasChanges);
 
   function updateField(field, value) {
     setForm((current) => ({
@@ -75,7 +88,9 @@ export default function CreateApplicationPage() {
         queryKey: ["application-definitions"],
       });
 
-      toast.success("Application Created", { description: "New Application Created Successfully."});
+      toast.success("Application Created", {
+        description: "New Application Created Successfully.",
+      });
 
       router.replace(`/staff/application-management/${application._id}`);
     },
@@ -132,11 +147,20 @@ export default function CreateApplicationPage() {
     });
   }
 
+  function handleBack() {
+    if (!hasChanges) {
+      router.back();
+      return;
+    }
+
+    setShowLeaveDialog(true);
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <button
         type="button"
-        onClick={() => router.back()}
+        onClick={handleBack}
         className="flex items-center gap-2 text-sm text-zinc-500 transition hover:text-white"
       >
         <ArrowLeft size={16} />
@@ -301,6 +325,11 @@ export default function CreateApplicationPage() {
           </Button>
         </div>
       </form>
+      <UnsavedChangesDialog
+        open={showLeaveDialog}
+        onStay={() => setShowLeaveDialog(false)}
+        onLeave={() => router.back()}
+      />
     </div>
   );
 }

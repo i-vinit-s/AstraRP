@@ -6,7 +6,7 @@ export default function StaffLayout({ children }) {
       <div className="mx-auto flex max-w-[1700px]">
         <StaffSidebar />
 
-        <main className="flex-1 p-10">{children}</main>
+        <main className="min-w-0 flex-1 p-5 sm:p-6 lg:p-10">{children}</main>
       </div>
     </div>
   );
