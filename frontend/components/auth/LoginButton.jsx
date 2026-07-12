@@ -1,5 +1,7 @@
 "use client";
 
+import { LogIn } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
 export default function LoginButton() {
@@ -9,11 +11,11 @@ export default function LoginButton() {
 
   return (
     <Button
-      variant="outline"
       onClick={login}
-      className="h-11 px-7 rounded-none border-white/15 bg-transparent text-white transition-all duration-300 hover:border-[#c92a2a] hover:bg-white hover:text-black [clip-path:polygon(8%_0,100%_0,100%_100%,0_100%,0_28%)]"
+      className="h-11 rounded-xl bg-[#8c1218] px-6 font-medium text-white shadow-lg shadow-[#8c1218]/20 transition-all duration-300 hover:bg-[#a41717]"
     >
-      Login
+      <LogIn className="mr-2 h-4 w-4" />
+      Login with Discord
     </Button>
   );
 }

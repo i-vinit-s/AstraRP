@@ -121,7 +121,7 @@ export default function Hero() {
               </Link>
 
               <Link
-                href="/apply"
+                href="/applications"
                 className="inline-flex h-14 w-full items-center justify-center rounded-xl border border-white/10 px-8 transition hover:border-[#8c1218] sm:w-auto"
               >
                 Apply Now

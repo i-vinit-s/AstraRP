@@ -91,7 +91,6 @@ export const metadata = {
     images: ["/about/AboutImage.png"],
   },
   themeColor: "#090909",
-  colorScheme: "dark",
 };
 
 export default function RootLayout({ children }) {

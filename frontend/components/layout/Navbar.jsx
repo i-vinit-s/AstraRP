@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, LayoutDashboard, LogOut, Menu, User } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { LayoutDashboard, LogOut, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -15,14 +16,6 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const navLinks = [
   {
@@ -40,6 +33,7 @@ const navLinks = [
 ];
 
 export default function Navbar() {
+  const pathname = usePathname(); 
   const { user, loading, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -55,6 +49,15 @@ export default function Navbar() {
 
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const desktopLinks = [...navLinks];
+
+  if (user?.canAccessStaffDashboard) {
+    desktopLinks.push({
+      label: "Staff Dashboard",
+      href: "/staff",
+    });
+  }
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
@@ -84,93 +87,54 @@ export default function Navbar() {
         {/* Desktop Nav */}
 
         <nav className="hidden items-center gap-10 lg:flex">
-          {navLinks.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="text-sm text-zinc-400 transition hover:text-white"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {desktopLinks.map((item) => {
+            const active = pathname === item.href;
+
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                  active
+                    ? "bg-[#8c1218]/15 text-[#d13a3f]"
+                    : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Desktop Actions */}
 
         <div className="hidden items-center gap-3 lg:flex">
           {loading ? null : user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="group flex items-center gap-3 rounded-2xl bg-white/3 px-3 py-2 transition-all duration-300 hover:border-[#8c1218]/40 hover:bg-white/5 hover:shadow-[0_0_30px_rgba(140,18,24,.15)]">
-                  <Image
-                    src={user.avatar}
-                    alt={user.username}
-                    width={128}
-                    height={128}
-                    className="h-11 w-11 rounded-xl object-cover"
-                  />
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/3 px-3 py-2">
+              <Image
+                src={user.avatar}
+                alt={user.username}
+                width={128}
+                height={128}
+                className="h-11 w-11 rounded-xl object-cover"
+                referrerPolicy="no-referrer"
+              />
 
-                  <div className="text-left">
-                    <p className="text-[15px] font-semibold">
-                      {user.globalName || user.username}
-                    </p>
+              <div>
+                <p className="text-[15px] font-semibold">
+                  {user.globalName || user.username}
+                </p>
 
-                    <div className="mt-0.5 flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <div className="mt-0.5 flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
 
-                      <span className="text-xs text-zinc-500">Connected</span>
-                    </div>
-                  </div>
-
-                  <ChevronDown className="ml-1 h-4 w-4 text-zinc-500 transition duration-300 group-data-[state=open]:rotate-180" />
-                </button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent
-                align="end"
-                sideOffset={12}
-                className="w-72 rounded-2xl bg-[#101010]/95 p-2 backdrop-blur-3xl shadow-[0_20px_80px_rgba(0,0,0,.6)]"
-              >
-                {user?.canAccessStaffDashboard && (
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/staff"
-                      className="h-11 px-3 flex cursor-pointer items-center gap-3 rounded-xl"
-                    >
-                      <LayoutDashboard className="h-4 w-4" />
-                      Staff Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-
-                <DropdownMenuItem asChild>
-                  <Link
-                    href="/profile"
-                    className="h-11 px-3 flex cursor-pointer items-center gap-3 rounded-xl"
-                  >
-                    <User className="h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="bg-white/10" />
-
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="h-11 px-3 cursor-pointer rounded-xl  text-red-400  focus:bg-red-500/10  focus:text-red-400"
-                >
-                  <LogOut className="mr-3 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <span className="text-xs text-zinc-500">Connected</span>
+                </div>
+              </div>
+            </div>
           ) : (
             <>
               <LoginButton />
-
-              <Button className="h-11 px-7 rounded-none bg-[#8c1218] hover:bg-[#c92a2a] [clip-path:polygon(8%_0,100%_0,100%_100%,0_100%,0_28%)]">
-                Apply
-              </Button>
             </>
           )}
         </div>
@@ -207,7 +171,7 @@ export default function Navbar() {
 
               <div className="flex flex-1 flex-col p-6">
                 <nav className="space-y-2">
-                  {navLinks.map((item) => (
+                  {desktopLinks.map((item) => (
                     <SheetClose
                       asChild
                       onClick={() => setMobileOpen(false)}
@@ -246,19 +210,10 @@ export default function Navbar() {
                       </div>
 
                       <div className="space-y-2">
-                        <SheetClose asChild>
-                          <Link
-                            href="/dashboard"
-                            className="flex items-center gap-3 rounded-2xl border  border-white/10  bg-white/5 px-4 py-4 transition-all duration-300  hover:border-[#8c1218]/40  hover:bg-[#8c1218]/10">
-                            <LayoutDashboard className="h-5 w-5 text-[#8c1218]" />
-
-                            <span className="font-medium">Dashboard</span>
-                          </Link>
-                        </SheetClose>
-
                         <button
                           onClick={logout}
-                          className="flex w-full items-center gap-3 rounded-2xl border  border-red-500/10 px-4 py-4  text-red-400 transition-all duration-300  hover:bg-red-500/10  hover:border-red-500/30">
+                          className="flex w-full items-center gap-3 rounded-2xl border  border-red-500/10 px-4 py-4  text-red-400 transition-all duration-300  hover:bg-red-500/10  hover:border-red-500/30"
+                        >
                           <LogOut className="h-5 w-5" />
 
                           <span className="font-medium">Logout</span>
@@ -268,10 +223,6 @@ export default function Navbar() {
                   ) : (
                     <>
                       <LoginButton />
-
-                      <Button className="w-full rounded-none bg-[#8c1218] hover:bg-[#c92a2a] [clip-path:polygon(8%_0,100%_0,100%_100%,0_100%,0_28%)]">
-                        Apply
-                      </Button>
                     </>
                   )}
                 </div>

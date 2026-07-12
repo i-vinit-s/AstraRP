@@ -248,7 +248,7 @@ export default function HomePage() {
                 variant="outline"
                 className="h-14 w-full rounded-xl border-white/10 bg-white/5 px-8 text-white transition hover:border-[#8c1218] hover:bg-[#8c1218]/10 sm:w-auto"
               >
-                <a href={siteConfig.applyUrl}>
+                <a href="/applications">
                   <Users className="mr-2 h-5 w-5" />
                   Apply for Whitelist
                 </a>

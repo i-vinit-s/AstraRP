@@ -1,13 +1,13 @@
-import StaffSidebar from "@/components/staff/StaffSidebar";
+import StaffNavbar from "@/components/staff/StaffNavbar";
 
 export default function StaffLayout({ children }) {
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      <div className="mx-auto flex max-w-[1700px]">
-        <StaffSidebar />
+    <div className="min-h-screen bg-[#0b0b0b]">
+      <StaffNavbar />
 
-        <main className="min-w-0 flex-1 p-5 sm:p-6 lg:p-10">{children}</main>
-      </div>
+      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {children}
+      </main>
     </div>
   );
 }
