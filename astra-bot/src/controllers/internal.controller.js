@@ -18,6 +18,7 @@ exports.applicationApproved = async (req, res) => {
     );
 
     await channel.send({
+      content: `${member}`,
       embeds: [
         embedService.whitelistApproved({
           member,
@@ -48,6 +49,7 @@ exports.applicationRejected = async (req, res) => {
     );
 
     await channel.send({
+      content: `${member}`,
       embeds: [
         embedService.whitelistRejected({
           member,

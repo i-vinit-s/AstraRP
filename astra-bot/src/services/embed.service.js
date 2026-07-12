@@ -2,17 +2,35 @@ const { EmbedBuilder } = require("discord.js");
 
 exports.whitelistApproved = ({ member }) => {
   return new EmbedBuilder()
+    .setTitle("Astra Roleplay")
     .setColor("#57F287")
-    .setTitle("✅ Whitelist Approved")
-    .setDescription(`${member} has been successfully whitelisted.`)
+    .setDescription(`Your application has been **Accepted**.`)
+    .addFields({
+      name: `Applicant`,
+      value: `${member}`,
+    })
+    .setImage("https://i.ibb.co/d0Kn6XmF/2.png")
+    .setFooter({
+      text: `#CraftYourLegacy`
+    })
     .setTimestamp();
 };
 
 exports.whitelistRejected = ({ member }) => {
   return new EmbedBuilder()
+    .setTitle("Astra Roleplay")
     .setColor("#ED4245")
-    .setTitle("❌ Whitelist Rejected")
-    .setDescription(`${member}'s whitelist application has been rejected.`)
+    .setDescription(
+      `Your application has been **Rejected**. Feel free to apply again.`,
+    )
+    .addFields({
+      name: `Applicant`,
+      value: `${member}`,
+    })
+    .setImage("https://i.ibb.co/jvPmz06x/1.png")
+    .setFooter({
+      text: `#CraftYourLegacy`,
+    })
     .setTimestamp();
 };
 
