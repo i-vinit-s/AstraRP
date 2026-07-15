@@ -16,6 +16,24 @@ html {
   scrollbar-width: none;
 }
 
+/* Smooth Scroll */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: auto;
+}
+
 /* Hide Side Scrollbar */
 
 /* Sonner Toast */

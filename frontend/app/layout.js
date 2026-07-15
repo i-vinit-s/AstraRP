@@ -7,6 +7,7 @@ import QueryProvider from "@/providers/QueryProvider";
 import SocketProvider from "@/providers/SocketProvider";
 import ScrollToTop from "@/components/common/ScrollToTop";
 import DisableInspect from "@/components/common/DisableInspect";
+import SmoothScroll from "@/components/common/smoothScroll";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -99,7 +100,9 @@ export default function RootLayout({ children }) {
       <body
         className={`${inter.className} bg-[#090909] text-white antialiased`}
       >
-        {/* <DisableInspect />/ */}
+        {/* SmoothScroll */}
+        <SmoothScroll />
+        
         <NextTopLoader
           color="#8c1218"
           initialPosition={0.08}
