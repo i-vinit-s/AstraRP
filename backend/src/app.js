@@ -13,6 +13,8 @@ const authRoutes = require("./routes/auth.routes");
 const staffRoutes = require("./routes/staff.routes");
 const applicationsRoutes = require("./routes/applications.routes");
 
+const { generalLimiter } = require("./middleware/rateLimit");
+
 const app = express();
 
 app.use(
@@ -23,9 +25,11 @@ app.use(
 );
 
 app.use(helmet());
+app.disable("x-powered-by");
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(cookieParser());
+app.set("trust proxy", 1);
 
 app.get("/", (req, res) => {
   res.json({
@@ -33,6 +37,8 @@ app.get("/", (req, res) => {
     message: "Astra RP Backend API",
   });
 });
+
+app.use(generalLimiter);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/applications", applicationsRoutes);

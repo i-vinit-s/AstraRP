@@ -1,4 +1,5 @@
 const express = require("express");
+const { authLimiter } = require("../middleware/rateLimit");
 
 const {
   discordLogin,
@@ -11,9 +12,9 @@ const { protect } = require("../middleware/auth");
 
 const router = express.Router();
 
-router.get("/discord", discordLogin);
+router.get("/discord", authLimiter, discordLogin);
 
-router.get("/callback", discordCallback);
+router.get("/callback", authLimiter, discordCallback);
 
 router.get("/me", protect, getMe);
 

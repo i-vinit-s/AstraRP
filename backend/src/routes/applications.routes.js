@@ -4,6 +4,8 @@ const router = express.Router();
 
 const { protect, optionalAuth } = require("../middleware/auth");
 
+const { submitLimiter } = require("../middleware/rateLimit");
+
 const requirePermission = require("../middleware/requirePermission");
 const PERMISSIONS = require("../config/permissions");
 
@@ -57,7 +59,7 @@ router.post("/:slug/new", protect, createNewApplication);
 
 router.post("/:slug/draft", protect, saveDraft);
 
-router.post("/:slug/submit", protect, submitApplication);
+router.post("/:slug/submit", protect, submitLimiter, submitApplication);
 
 /*
 |--------------------------------------------------------------------------
