@@ -120,8 +120,8 @@ export default function Navbar() {
                 referrerPolicy="no-referrer"
               />
 
-              <div>
-                <p className="text-[15px] font-semibold">
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-semibold">
                   {user.globalName || user.username}
                 </p>
 
@@ -131,6 +131,14 @@ export default function Navbar() {
                   <span className="text-xs text-zinc-500">Connected</span>
                 </div>
               </div>
+
+              <button
+                onClick={logout}
+                title="Logout"
+                className="group ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 transition-all duration-300 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
+              >
+                <LogOut className="h-4 w-4 transition-transform duration-200 group-hover:-rotate-12" />
+              </button>
             </div>
           ) : (
             <>
