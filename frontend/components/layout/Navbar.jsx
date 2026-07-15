@@ -27,6 +27,10 @@ const navLinks = [
     href: "/rules",
   },
   {
+    label: "Guides",
+    href: "/guides/commands",
+  },
+  {
     label: "FAQ",
     href: "/faq",
   },
