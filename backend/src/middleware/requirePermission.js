@@ -2,9 +2,9 @@ const resolvePermissions = require("../utils/permissionResolver");
 
 module.exports = (permission) => {
   return (req, res, next) => {
-    const permissions = resolvePermissions(req.user.discordRoles);
+    const permissions = resolvePermissions(req.user.roles);
 
-    if (permissions.includes("*") || permissions.includes(permission)) {
+    if (permissions[permission]) {
       return next();
     }
 

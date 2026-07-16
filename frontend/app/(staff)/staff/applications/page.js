@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 const statusFilters = [
   { value: "pending", label: "Pending" },
@@ -23,19 +24,23 @@ const statusFilters = [
 ];
 
 export default function StaffApplicationsPage() {
+  const { user } = useAuth();
   const [status, setStatus] = useState("pending");
   const [applicationType, setApplicationType] = useState("");
   const [search, setSearch] = useState("");
 
-  const {
-    data: applications = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["staff-applications", status, applicationType],
+  const [page, setPage] = useState(1);
 
+  const PAGE_SIZE = 10;
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["staff-applications", status, applicationType, search, page],
+    enabled: !!user?.canViewApplications,
     queryFn: async () => {
       const params = new URLSearchParams();
+
+      params.set("page", page);
+      params.set("limit", PAGE_SIZE);
 
       if (status) {
         params.set("status", status);
@@ -45,13 +50,21 @@ export default function StaffApplicationsPage() {
         params.set("application", applicationType);
       }
 
+      if (search.trim()) {
+        params.set("search", search.trim());
+      }
+
       const { data } = await api.get(
         `/staff/applications?${params.toString()}`,
       );
 
-      return data.applications || [];
+      return data;
     },
   });
+
+  const applications = data?.applications ?? [];
+
+  const pagination = data?.pagination;
 
   const applicationTypes = Array.from(
     new Map(
@@ -63,28 +76,6 @@ export default function StaffApplicationsPage() {
         ]),
     ).values(),
   );
-
-  const filteredApplications = applications.filter((submission) => {
-    const query = search.trim().toLowerCase();
-
-    if (!query) {
-      return true;
-    }
-
-    const values = [
-      submission.user?.username,
-      submission.user?.globalName,
-      submission.user?.discordId,
-      submission.application?.title,
-      submission.application?.slug,
-    ];
-
-    return values.some((value) =>
-      String(value || "")
-        .toLowerCase()
-        .includes(query),
-    );
-  });
 
   return (
     <div className="mx-auto max-w-7xl space-y-8">
@@ -116,7 +107,7 @@ export default function StaffApplicationsPage() {
             </p>
 
             <p className="mt-1 text-2xl font-bold text-white">
-              {filteredApplications.length}
+              {pagination?.total ?? 0}
             </p>
           </div>
         </div>
@@ -136,7 +127,10 @@ export default function StaffApplicationsPage() {
                 <button
                   key={filter.value}
                   type="button"
-                  onClick={() => setStatus(filter.value)}
+                  onClick={() => {
+                    setStatus(filter.value);
+                    setPage(1);
+                  }}
                   className={`rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                     active
                       ? "bg-[#8c1218] text-white"
@@ -158,7 +152,10 @@ export default function StaffApplicationsPage() {
               <input
                 type="text"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 placeholder="Search applicant, Discord ID or application..."
                 className="h-12 w-full rounded-xl border border-white/10 bg-[#090909] pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-zinc-700 focus:border-[#8c1218]/60"
               />
@@ -171,7 +168,10 @@ export default function StaffApplicationsPage() {
 
               <select
                 value={applicationType}
-                onChange={(event) => setApplicationType(event.target.value)}
+                onChange={(e) => {
+                  setApplicationType(e.target.value);
+                  setPage(1);
+                }}
                 className="h-12 w-full appearance-none rounded-xl border border-white/10 bg-[#090909] pl-11 pr-10 text-sm text-zinc-300 outline-none transition focus:border-[#8c1218]/60"
               >
                 <option value="">All application types</option>
@@ -211,17 +211,48 @@ export default function StaffApplicationsPage() {
 
       {/* Applications */}
 
-      {!isLoading && !error && filteredApplications.length > 0 && (
+      {!isLoading && !error && applications.length > 0 && (
         <div className="space-y-3">
-          {filteredApplications.map((submission) => (
+          {applications.map((submission) => (
             <ApplicationRow key={submission._id} submission={submission} />
           ))}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#111111] px-5 py-4">
+              <p className="text-sm text-zinc-500">
+                Showing {(pagination.page - 1) * pagination.limit + 1}–
+                {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
+                of {pagination.total}
+              </p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={!pagination.hasPrevious}
+                  onClick={() => setPage((p) => p - 1)}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-40 hover:border-[#8c1218]/40"
+                >
+                  Previous
+                </button>
+
+                <span className="rounded-xl border border-white/10 px-4 py-2 text-sm">
+                  {pagination.page} / {pagination.totalPages}
+                </span>
+
+                <button
+                  disabled={!pagination.hasNext}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-40 hover:border-[#8c1218]/40"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Empty */}
 
-      {!isLoading && !error && filteredApplications.length === 0 && (
+      {!isLoading && !error && applications.length === 0 && (
         <div className="rounded-3xl border border-dashed border-white/10 bg-[#111111] px-6 py-24 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
             <FileText className="h-7 w-7 text-zinc-600" />
@@ -241,63 +272,77 @@ export default function StaffApplicationsPage() {
 }
 
 function ApplicationRow({ submission }) {
+  const { user: currentUser } = useAuth();
   const user = submission.user;
   const application = submission.application;
+  const canReview = currentUser?.canReviewApplications;
+
+  const content = (
+    <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+      <div className="flex min-w-0 items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#8c1218]/20 bg-[#8c1218]/10">
+          <FileText className="h-5 w-5 text-[#c92a2a]" />
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="truncate text-lg font-semibold text-white">
+              {user?.globalName || user?.username || "Unknown Applicant"}
+            </h2>
+
+            <StatusBadge status={submission.status} />
+          </div>
+
+          <p className="mt-1 text-sm text-zinc-500">
+            @{user?.username || "unknown"}
+          </p>
+
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-zinc-600">
+            <span>{application?.title || "Unknown application"}</span>
+
+            <span>Attempt #{submission.attempt || 1}</span>
+
+            {user?.discordId && (
+              <span className="font-mono">{user.discordId}</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center justify-between gap-5 md:justify-end">
+        <div className="text-left md:text-right">
+          <div className="flex items-center gap-2 text-sm text-zinc-400 md:justify-end">
+            <Clock3 className="h-4 w-4 text-zinc-600" />
+
+            {submission.submittedAt
+              ? new Date(submission.submittedAt).toLocaleString()
+              : "Not submitted"}
+          </div>
+
+          <p className="mt-1 text-xs text-zinc-600">
+            {application?.category || "Uncategorized"}
+          </p>
+        </div>
+
+        <ChevronRight className="h-5 w-5 text-zinc-700 transition group-hover:translate-x-1 group-hover:text-[#c92a2a]" />
+      </div>
+    </div>
+  );
+
+  if (!canReview) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-[#111111] p-5 sm:p-6">
+        {content}
+      </div>
+    );
+  }
 
   return (
     <Link
       href={`/staff/applications/${submission._id}`}
       className="group block rounded-2xl border border-white/10 bg-[#111111] p-5 transition hover:border-[#8c1218]/40 hover:bg-[#131313] sm:p-6"
     >
-      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
-        <div className="flex min-w-0 items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#8c1218]/20 bg-[#8c1218]/10">
-            <FileText className="h-5 w-5 text-[#c92a2a]" />
-          </div>
-
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="truncate text-lg font-semibold text-white">
-                {user?.globalName || user?.username || "Unknown Applicant"}
-              </h2>
-
-              <StatusBadge status={submission.status} />
-            </div>
-
-            <p className="mt-1 text-sm text-zinc-500">
-              @{user?.username || "unknown"}
-            </p>
-
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-zinc-600">
-              <span>{application?.title || "Unknown application"}</span>
-
-              <span>Attempt #{submission.attempt || 1}</span>
-
-              {user?.discordId && (
-                <span className="font-mono">{user.discordId}</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center justify-between gap-5 md:justify-end">
-          <div className="text-left md:text-right">
-            <div className="flex items-center gap-2 text-sm text-zinc-400 md:justify-end">
-              <Clock3 className="h-4 w-4 text-zinc-600" />
-
-              {submission.submittedAt
-                ? new Date(submission.submittedAt).toLocaleString()
-                : "Not submitted"}
-            </div>
-
-            <p className="mt-1 text-xs text-zinc-600">
-              {application?.category || "Uncategorized"}
-            </p>
-          </div>
-
-          <ChevronRight className="h-5 w-5 text-zinc-700 transition group-hover:translate-x-1 group-hover:text-[#c92a2a]" />
-        </div>
-      </div>
+      {content}
     </Link>
   );
 }

@@ -12,8 +12,10 @@ import {
 } from "lucide-react";
 
 import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function StaffDashboard() {
+  const { user } = useAuth();
   const {
     data: applications = [],
     isLoading: applicationsLoading,
@@ -22,18 +24,14 @@ export default function StaffDashboard() {
     queryKey: ["staff-applications", "pending", ""],
 
     queryFn: async () => {
-      const { data } = await api.get(
-        "/staff/applications?status=pending",
-      );
+      const { data } = await api.get("/staff/applications?status=pending");
 
       return data.applications || [];
     },
+    enabled: !!user.canViewApplications,
   });
 
-  const {
-    data: dashboard,
-    isLoading: dashboardLoading,
-  } = useQuery({
+  const { data: dashboard, isLoading: dashboardLoading } = useQuery({
     queryKey: ["staff-dashboard"],
 
     queryFn: async () => {
@@ -41,6 +39,7 @@ export default function StaffDashboard() {
 
       return data;
     },
+    enabled: !!user.isStaff,
   });
 
   const stats = dashboard?.stats;
@@ -66,13 +65,15 @@ export default function StaffDashboard() {
           </p>
         </div>
 
-        <Link
-          href="/staff/applications"
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#8c1218] px-6 text-sm font-medium text-white transition hover:bg-[#a41717]"
-        >
-          View Applications
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        {user?.canViewApplications && (
+          <Link
+            href="/staff/applications"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#8c1218] px-6 text-sm font-medium text-white transition hover:bg-[#a41717]"
+          >
+            View Applications
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        )}
       </div>
 
       {/* Stats */}
@@ -117,77 +118,79 @@ export default function StaffDashboard() {
 
       {/* Pending applications */}
 
-      <section className="overflow-hidden rounded-3xl border border-white/10 bg-[#111111]">
-        <div className="flex flex-col justify-between gap-4 border-b border-white/10 p-6 sm:flex-row sm:items-center sm:px-8">
-          <div>
-            <h2 className="text-xl font-semibold text-white sm:text-2xl">
-              Pending Applications
-            </h2>
-
-            <p className="mt-2 text-sm text-zinc-500">
-              Applications currently waiting for staff review.
-            </p>
-          </div>
-
-          <Link
-            href="/staff/applications"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#c92a2a] transition hover:text-red-400"
-          >
-            View all
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-
-        {applicationsLoading && (
-          <div className="flex min-h-80 items-center justify-center">
-            <div className="text-center">
-              <Loader2 className="mx-auto h-9 w-9 animate-spin text-[#8c1218]" />
-
-              <p className="mt-4 text-sm text-zinc-500">
-                Loading applications...
-              </p>
-            </div>
-          </div>
-        )}
-
-        {!applicationsLoading && applicationsError && (
-          <div className="m-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400 sm:m-8">
-            {applicationsError.response?.data?.message ||
-              "Failed to load pending applications."}
-          </div>
-        )}
-
-        {!applicationsLoading &&
-          !applicationsError &&
-          applications.length === 0 && (
-            <div className="px-6 py-20 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-                <CheckCircle2 className="h-7 w-7 text-zinc-600" />
-              </div>
-
-              <h3 className="mt-5 text-lg font-semibold text-white">
-                No pending applications
-              </h3>
+      {user?.canViewApplications && (
+        <section className="overflow-hidden rounded-3xl border border-white/10 bg-[#111111]">
+          <div className="flex flex-col justify-between gap-4 border-b border-white/10 p-6 sm:flex-row sm:items-center sm:px-8">
+            <div>
+              <h2 className="text-xl font-semibold text-white sm:text-2xl">
+                Pending Applications
+              </h2>
 
               <p className="mt-2 text-sm text-zinc-500">
-                There are currently no submissions waiting for review.
+                Applications currently waiting for staff review.
               </p>
+            </div>
+
+            <Link
+              href="/staff/applications"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[#c92a2a] transition hover:text-red-400"
+            >
+              View all
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          {applicationsLoading && (
+            <div className="flex min-h-80 items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="mx-auto h-9 w-9 animate-spin text-[#8c1218]" />
+
+                <p className="mt-4 text-sm text-zinc-500">
+                  Loading applications...
+                </p>
+              </div>
             </div>
           )}
 
-        {!applicationsLoading &&
-          !applicationsError &&
-          applications.length > 0 && (
-            <div className="divide-y divide-white/5">
-              {applications.slice(0, 6).map((submission) => (
-                <PendingApplicationRow
-                  key={submission._id}
-                  submission={submission}
-                />
-              ))}
+          {!applicationsLoading && applicationsError && (
+            <div className="m-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-400 sm:m-8">
+              {applicationsError.response?.data?.message ||
+                "Failed to load pending applications."}
             </div>
           )}
-      </section>
+
+          {!applicationsLoading &&
+            !applicationsError &&
+            applications.length === 0 && (
+              <div className="px-6 py-20 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                  <CheckCircle2 className="h-7 w-7 text-zinc-600" />
+                </div>
+
+                <h3 className="mt-5 text-lg font-semibold text-white">
+                  No pending applications
+                </h3>
+
+                <p className="mt-2 text-sm text-zinc-500">
+                  There are currently no submissions waiting for review.
+                </p>
+              </div>
+            )}
+
+          {!applicationsLoading &&
+            !applicationsError &&
+            applications.length > 0 && (
+              <div className="divide-y divide-white/5">
+                {applications.slice(0, 6).map((submission) => (
+                  <PendingApplicationRow
+                    key={submission._id}
+                    submission={submission}
+                  />
+                ))}
+              </div>
+            )}
+        </section>
+      )}
     </div>
   );
 }
@@ -222,9 +225,7 @@ function PendingApplicationRow({ submission }) {
           </p>
 
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-600">
-            <span>
-              {application?.title || "Unknown application"}
-            </span>
+            <span>{application?.title || "Unknown application"}</span>
 
             <span>Attempt #{submission.attempt || 1}</span>
           </div>
@@ -274,9 +275,7 @@ function StatCard({
         {loading ? (
           <div className="h-10 w-20 animate-pulse rounded-lg bg-white/5" />
         ) : (
-          <p className="text-4xl font-bold text-white">
-            {value ?? 0}
-          </p>
+          <p className="text-4xl font-bold text-white">{value ?? 0}</p>
         )}
       </div>
     </div>

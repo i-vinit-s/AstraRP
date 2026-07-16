@@ -1,24 +1,11 @@
-const P = require("./permissions");
-
 module.exports = {
-  [process.env.ADMIN_ROLE_ID]: ["*"],
+  [process.env.ADMIN_ROLE_ID]: {
+    isStaff: true,
+    canManageApplications: true,
+  },
 
-  [process.env.MANAGEMENT_ROLE_ID]: [
-    P.DASHBOARD_VIEW,
-    P.APPLICATIONS_VIEW,
-    P.APPLICATIONS_REVIEW,
-
-    P.APPLICATIONS_MANAGE_VIEW,
-    P.APPLICATIONS_MANAGE_CREATE,
-    P.APPLICATIONS_MANAGE_EDIT,
-    P.APPLICATIONS_MANAGE_STATUS,
-  ],
-
-  [process.env.MODERATOR_ROLE_ID]: [
-    P.DASHBOARD_VIEW,
-    P.APPLICATIONS_VIEW,
-    P.APPLICATIONS_REVIEW,
-  ],
-
-  [process.env.SUPPORT_ROLE_ID]: [P.DASHBOARD_VIEW, P.APPLICATIONS_VIEW],
+  [process.env.WHITELIST_RESPONSE_ROLE_ID]: {
+    canViewApplications: true,
+    canReviewApplications: true,
+  },
 };

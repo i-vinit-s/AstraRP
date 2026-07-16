@@ -1,15 +1,24 @@
 const roles = require("../config/roles");
 
 module.exports = function resolvePermissions(userRoles = []) {
-  const permissions = new Set();
+  const resolved = {
+    isStaff: false,
+    canViewApplications: false,
+    canReviewApplications: false,
+    canManageApplications: false,
+  };
 
   for (const role of userRoles) {
-    const perms = roles[role];
+    const permissions = roles[role];
 
-    if (!perms) continue;
+    if (!permissions) continue;
 
-    perms.forEach((perm) => permissions.add(perm));
+    Object.entries(permissions).forEach(([key, value]) => {
+      if (value) {
+        resolved[key] = true;
+      }
+    });
   }
 
-  return [...permissions];
+  return resolved;
 };

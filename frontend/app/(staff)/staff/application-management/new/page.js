@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 import equal from "fast-deep-equal";
 import useUnsavedChanges from "@/hooks/useUnsavedChanges";
-import { useMemo } from "react";
 
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,9 @@ function generateSlug(value = "") {
 
 export default function CreateApplicationPage() {
   const router = useRouter();
+  const { user } = useAuth();
+
+  const canManage = user?.canManageApplications;
   const queryClient = useQueryClient();
 
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
@@ -102,6 +105,14 @@ export default function CreateApplicationPage() {
     },
   });
 
+  useEffect(() => {
+    if (!user) return;
+
+    if (!canManage) {
+      router.replace("/");
+    }
+  }, [user, canManage, router]);
+
   function handleSubmit(event) {
     event.preventDefault();
 
@@ -154,6 +165,10 @@ export default function CreateApplicationPage() {
     }
 
     setShowLeaveDialog(true);
+  }
+
+  if (user && !canManage) {
+    return null;
   }
 
   return (

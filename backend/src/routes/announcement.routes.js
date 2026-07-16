@@ -12,28 +12,22 @@ const { protect } = require("../middleware/auth");
 
 const requirePermission = require("../middleware/requirePermission");
 
-const P = require("../config/permissions");
-
 const router = express.Router();
 
 router.use(protect);
 
-router.get("/", requirePermission(P.ANNOUNCEMENTS_VIEW), getAnnouncements);
+router.get("/", requirePermission("isStaff"), getAnnouncements);
 
-router.get("/:id", requirePermission(P.ANNOUNCEMENTS_VIEW), getAnnouncement);
+router.get("/:id", requirePermission("isStaff"), getAnnouncement);
 
-router.post("/", requirePermission(P.ANNOUNCEMENTS_CREATE), createAnnouncement);
+router.post("/", requirePermission("isStaff"), createAnnouncement);
 
 router.patch(
   "/:id",
-  requirePermission(P.ANNOUNCEMENTS_EDIT),
+  requirePermission("isStaff"),
   updateAnnouncement,
 );
 
-router.delete(
-  "/:id",
-  requirePermission(P.ANNOUNCEMENTS_DELETE),
-  deleteAnnouncement,
-);
+router.delete("/:id", requirePermission("isStaff"), deleteAnnouncement);
 
 module.exports = router;

@@ -13,9 +13,7 @@ exports.getMe = asyncHandler(async (req, res) => {
     success: true,
     user: {
       ...req.user.toObject(),
-      permissions,
-      canAccessStaffDashboard:
-        permissions.includes("*") || permissions.includes("dashboard.view"),
+      ...permissions,
     },
   });
 });

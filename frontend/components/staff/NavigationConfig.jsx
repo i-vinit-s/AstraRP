@@ -2,11 +2,6 @@ import {
   LayoutDashboard,
   FileText,
   Settings2,
-  Megaphone,
-  Users,
-  Shield,
-  ScrollText,
-  Bell,
 } from "lucide-react";
 
 const navigation = [
@@ -20,12 +15,14 @@ const navigation = [
     title: "Applications",
     href: "/staff/applications",
     icon: FileText,
+    permission: "canViewApplications",
   },
 
   {
     title: "Manage Applications",
     href: "/staff/application-management",
     icon: Settings2,
+    permission: "canManageApplications",
   },
 ];
 

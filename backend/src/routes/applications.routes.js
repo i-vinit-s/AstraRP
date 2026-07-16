@@ -7,7 +7,6 @@ const { protect, optionalAuth } = require("../middleware/auth");
 const { submitLimiter } = require("../middleware/rateLimit");
 
 const requirePermission = require("../middleware/requirePermission");
-const PERMISSIONS = require("../config/permissions");
 
 const {
   getApplications,

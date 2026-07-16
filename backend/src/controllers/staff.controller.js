@@ -70,12 +70,23 @@ exports.getDashboardStats = asyncHandler(async (req, res) => {
 */
 
 exports.getApplications = asyncHandler(async (req, res) => {
-  const { status = "pending", application } = req.query;
+  const {
+    status = "pending",
+    application,
+    search = "",
+    page = 1,
+    limit = 10,
+  } = req.query;
+
+  const currentPage = Math.max(Number(page), 1);
+  const pageSize = Math.max(Number(limit), 1);
+
+  const skip = (currentPage - 1) * pageSize;
 
   const query = {};
 
   /*
-   * Status filter.
+   * Status
    */
 
   if (status && status !== "all") {
@@ -98,10 +109,7 @@ exports.getApplications = asyncHandler(async (req, res) => {
   }
 
   /*
-   * Application type filter.
-   *
-   * Since ApplicationSubmission.application references Application,
-   * filtering by slug requires resolving the Application first.
+   * Application filter
    */
 
   if (application) {
@@ -116,13 +124,70 @@ exports.getApplications = asyncHandler(async (req, res) => {
     if (!applicationDefinition) {
       return res.status(200).json({
         success: true,
-        count: 0,
         applications: [],
+        pagination: {
+          page: currentPage,
+          limit: pageSize,
+          total: 0,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+        },
       });
     }
 
     query.application = applicationDefinition._id;
   }
+
+  /*
+   * Search
+   */
+
+  if (search.trim()) {
+    const User = require("../models/User");
+    const Application = require("../models/Application");
+
+    const regex = new RegExp(search.trim(), "i");
+
+    const [users, applications] = await Promise.all([
+      User.find({
+        $or: [{ username: regex }, { globalName: regex }, { discordId: regex }],
+      }).select("_id"),
+
+      Application.find({
+        $or: [{ title: regex }, { slug: regex }],
+      }).select("_id"),
+    ]);
+
+    query.$or = [
+      {
+        user: {
+          $in: users.map((u) => u._id),
+        },
+      },
+      {
+        application: {
+          $in: applications.map((a) => a._id),
+        },
+      },
+    ];
+  }
+
+  /*
+   * Total
+   */
+
+  const total = await ApplicationSubmission.countDocuments(query);
+
+  /*
+   * Total Pages
+   */
+
+  const totalPages = Math.ceil(total / pageSize);
+
+  /*
+   * Applications
+   */
 
   const applications = await ApplicationSubmission.find(query)
     .populate("user", "username globalName avatar discordId isWhitelisted")
@@ -134,12 +199,23 @@ exports.getApplications = asyncHandler(async (req, res) => {
       submittedAt: -1,
       createdAt: -1,
     })
+    .skip(skip)
+    .limit(pageSize)
     .lean();
 
   return res.status(200).json({
     success: true,
-    count: applications.length,
+
     applications,
+
+    pagination: {
+      page: currentPage,
+      limit: pageSize,
+      total,
+      totalPages,
+      hasNext: currentPage < totalPages,
+      hasPrevious: currentPage > 1,
+    },
   });
 });
 

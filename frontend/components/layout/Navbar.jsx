@@ -56,7 +56,7 @@ export default function Navbar() {
 
   const desktopLinks = [...navLinks];
 
-  if (user?.canAccessStaffDashboard) {
+  if (user?.isStaff) {
     desktopLinks.push({
       label: "Staff Dashboard",
       href: "/staff",

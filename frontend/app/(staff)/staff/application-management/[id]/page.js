@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
 import {
   ArrowLeft,
   FileQuestion,
@@ -43,22 +44,37 @@ const tabs = [
 ];
 
 export default function ApplicationBuilderPage() {
+  const { user } = useAuth();
+
+  const canManage = user?.canManageApplications;
   const { id } = useParams();
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState("settings");
 
+  useEffect(() => {
+    if (!user) return;
+
+    if (!canManage) {
+      router.replace("/");
+    }
+  }, [user, canManage, router]);
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["application-builder", id],
+
+    enabled: Boolean(id) && !!canManage,
 
     queryFn: async () => {
       const { data } = await api.get(`/staff/application-definitions/${id}`);
 
       return data;
     },
-
-    enabled: Boolean(id),
   });
+
+  if (user && !canManage) {
+  return null;
+}
 
   if (isLoading) {
     return (

@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+import { useAuth } from "@/context/AuthContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -21,6 +25,19 @@ import { Button } from "@/components/ui/button";
 
 export default function ApplicationManagementPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
+
+  const { user } = useAuth();
+
+  const canManage = user?.canManageApplications;
+
+  useEffect(() => {
+    if (!user) return;
+
+    if (!canManage) {
+      router.replace("/");
+    }
+  }, [user, canManage, router]);
   const {
     data: applications = [],
     isLoading,
@@ -28,12 +45,18 @@ export default function ApplicationManagementPage() {
   } = useQuery({
     queryKey: ["application-definitions"],
 
+    enabled: !!canManage,
+
     queryFn: async () => {
       const { data } = await api.get("/staff/application-definitions");
 
       return data.applications || [];
     },
   });
+
+  if (user && !canManage) {
+    return null;
+  }
 
   if (isLoading) {
     return (

@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -13,11 +14,22 @@ import {
 } from "lucide-react";
 
 import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import ReviewActions from "@/components/staff/ReviewActions";
 
 export default function StaffApplicationPage() {
+  const { user: currentUser } = useAuth();
   const { id } = useParams();
   const router = useRouter();
+  const canReview = currentUser?.canReviewApplications;
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    if (!canReview) {
+      router.replace("/");
+    }
+  }, [currentUser, canReview, router]);
 
   const {
     data: application,
@@ -25,15 +37,18 @@ export default function StaffApplicationPage() {
     error,
   } = useQuery({
     queryKey: ["staff-application", id],
-
     queryFn: async () => {
       const { data } = await api.get(`/staff/applications/${id}`);
 
       return data.application;
     },
 
-    enabled: Boolean(id),
+    enabled: Boolean(id) && !!canReview,
   });
+
+  if (currentUser && !canReview) {
+    return null;
+  }
 
   if (isLoading) {
     return (

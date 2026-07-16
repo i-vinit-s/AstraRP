@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 
 import navigation from "./NavigationConfig";
+import { useAuth } from "@/context/AuthContext";
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export default function StaffNavbar() {
+  const { user } = useAuth();
   const pathname = usePathname();
 
   return (
@@ -36,30 +38,36 @@ export default function StaffNavbar() {
           {/* Right */}
 
           <nav className="flex flex-1 items-center gap-2 px-8">
-            {navigation.map((item) => {
-              const Icon = item.icon;
+            {navigation
+              .filter((item) => {
+                if (!item.permission) return true;
 
-              const active =
-                item.href === "/staff"
-                  ? pathname === "/staff"
-                  : pathname.startsWith(item.href);
+                return user?.[item.permission];
+              })
+              .map((item) => {
+                const Icon = item.icon;
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition ${
-                    active
-                      ? "border border-[#8c1218]/30 bg-[#8c1218]/15 text-[#d13a3f]"
-                      : "text-zinc-400 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <Icon size={17} />
+                const active =
+                  item.href === "/staff"
+                    ? pathname === "/staff"
+                    : pathname.startsWith(item.href);
 
-                  {item.title}
-                </Link>
-              );
-            })}
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition ${
+                      active
+                        ? "border border-[#8c1218]/30 bg-[#8c1218]/15 text-[#d13a3f]"
+                        : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <Icon size={17} />
+
+                    {item.title}
+                  </Link>
+                );
+              })}
           </nav>
         </div>
       </header>
@@ -72,6 +80,7 @@ export default function StaffNavbar() {
 }
 
 function MobileNavbar() {
+  const { user } = useAuth();
   const pathname = usePathname();
 
   return (
@@ -107,30 +116,36 @@ function MobileNavbar() {
             </div>
 
             <nav className="space-y-2 p-5">
-              {navigation.map((item) => {
-                const Icon = item.icon;
+              {navigation
+                .filter((item) => {
+                  if (!item.permission) return true;
 
-                const active =
-                  item.href === "/staff"
-                    ? pathname === "/staff"
-                    : pathname.startsWith(item.href);
+                  return user?.[item.permission];
+                })
+                .map((item) => {
+                  const Icon = item.icon;
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                      active
-                        ? "border border-[#8c1218]/30 bg-[#8c1218]/15 text-[#d13a3f]"
-                        : "text-zinc-400 hover:bg-white/5 hover:text-white"
-                    }`}
-                  >
-                    <Icon size={18} />
+                  const active =
+                    item.href === "/staff"
+                      ? pathname === "/staff"
+                      : pathname.startsWith(item.href);
 
-                    {item.title}
-                  </Link>
-                );
-              })}
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
+                        active
+                          ? "border border-[#8c1218]/30 bg-[#8c1218]/15 text-[#d13a3f]"
+                          : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      <Icon size={18} />
+
+                      {item.title}
+                    </Link>
+                  );
+                })}
             </nav>
           </SheetContent>
         </Sheet>

@@ -35,7 +35,6 @@ const {
 
 const { protect } = require("../middleware/auth");
 const requirePermission = require("../middleware/requirePermission");
-const PERMISSIONS = require("../config/permissions");
 
 const router = express.Router();
 
@@ -55,7 +54,7 @@ router.use(protect);
 
 router.get(
   "/dashboard",
-  requirePermission(PERMISSIONS.DASHBOARD_VIEW),
+  requirePermission("isStaff"),
   getDashboardStats,
 );
 
@@ -65,21 +64,13 @@ router.get(
 |--------------------------------------------------------------------------
 */
 
-router.get(
-  "/applications",
-  requirePermission(PERMISSIONS.APPLICATIONS_VIEW),
-  getApplications,
-);
+router.get("/applications", requirePermission("canViewApplications"), getApplications);
 
-router.get(
-  "/applications/:id",
-  requirePermission(PERMISSIONS.APPLICATIONS_VIEW),
-  getApplication,
-);
+router.get("/applications/:id", requirePermission("canReviewApplications"), getApplication);
 
 router.patch(
   "/applications/:id",
-  requirePermission(PERMISSIONS.APPLICATIONS_REVIEW),
+  requirePermission("canReviewApplications"),
   reviewApplication,
 );
 
@@ -91,37 +82,37 @@ router.patch(
 
 router.get(
   "/application-definitions",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_VIEW),
+  requirePermission("canManageApplications"),
   getApplicationDefinitions,
 );
 
 router.post(
   "/application-definitions",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_CREATE),
+  requirePermission("canManageApplications"),
   createApplicationDefinition,
 );
 
 router.get(
   "/application-definitions/:id",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_VIEW),
+  requirePermission("canManageApplications"),
   getApplicationDefinition,
 );
 
 router.patch(
   "/application-definitions/:id",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   updateApplicationDefinition,
 );
 
 router.delete(
   "/application-definitons/:id",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   deleteApplicationDefinition,
 );
 
 router.patch(
   "/application-definitions/:id/status",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_STATUS),
+  requirePermission("canManageApplications"),
   updateApplicationStatus,
 );
 
@@ -133,7 +124,7 @@ router.patch(
 
 router.get(
   "/application-definitions/:id/builder",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_VIEW),
+  requirePermission("canManageApplications"),
   getApplicationBuilder,
 );
 
@@ -145,25 +136,25 @@ router.get(
 
 router.post(
   "/application-definitions/:id/sections",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   createSection,
 );
 
 router.patch(
   "/application-definitions/:id/sections/reorder",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   reorderSections,
 );
 
 router.patch(
   "/application-definitions/:id/sections/:sectionId",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   updateSection,
 );
 
 router.delete(
   "/application-definitions/:id/sections/:sectionId",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   deleteSection,
 );
 
@@ -175,37 +166,37 @@ router.delete(
 
 router.post(
   "/application-definitions/:id/questions",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   createQuestion,
 );
 
 router.patch(
   "/application-definitions/:id/questions/reorder",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   reorderQuestions,
 );
 
 router.patch(
   "/application-definitions/:id/questions/:questionId",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   updateQuestion,
 );
 
 router.delete(
   "/application-definitions/:id/questions/:questionId",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   deleteQuestion,
 );
 
 router.patch(
   "/application-definitions/:id/sections/reorder",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   reorderApplicationSections,
 );
 
 router.patch(
   "/application-definitions/:id/questions/reorder",
-  requirePermission(PERMISSIONS.APPLICATIONS_MANAGE_EDIT),
+  requirePermission("canManageApplications"),
   reorderApplicationQuestions,
 );
 
